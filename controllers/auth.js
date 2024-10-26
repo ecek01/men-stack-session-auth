@@ -31,7 +31,15 @@ router.post("/sign-up", async (req, res) => {
     req.body.password = hashedPassword;
 
     const user = await User.create(req.body);
-    res.send(`Thanks for signing up ${user.username}`);
+
+    // Set the user session and redirect to the home page
+    req.session.user = {
+      username: user.username,
+      _id: user._id,
+    };
+    req.session.save(() => {
+      res.redirect("/");
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("An error occurred during sign-up.");
@@ -54,13 +62,14 @@ router.post("/sign-in", async (req, res) => {
       return res.send("Login failed. Please try again.");
     }
 
+    // Set the user session and redirect to the home page
     req.session.user = {
       username: userInDatabase.username,
       _id: userInDatabase._id,
     };
-
-    // Redirect after successful login
-    return res.redirect("/");
+    req.session.save(() => {
+      res.redirect("/");
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("An error occurred during sign-in.");
@@ -69,6 +78,7 @@ router.post("/sign-in", async (req, res) => {
 
 // Handle sign-out
 router.get("/sign-out", (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
+  req.session.destroy(() => {
+    res.redirect("/");
+  });
 });

@@ -10,6 +10,10 @@ const morgan = require("morgan");
 const authController = require("./controllers/auth.js");
 
 const session = require('express-session');
+const MongoStore = require("connect-mongo");
+const isSignedIn = require("./middleware/is-signed-in.js");
+
+
 
 // Set the port from environment variable or default to 3000
 const port = process.env.PORT ? process.env.PORT : "3000";
@@ -34,8 +38,12 @@ app.use(
       secret: process.env.SESSION_SECRET,
       resave: false,
       saveUninitialized: true,
+      store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI, // Make sure this matches your MongoDB URI environment variable
+      }),
     })
-  );
+  );  
+  
 
 app.use(methodOverride("_method"));
 app.use(morgan('dev'));
@@ -46,14 +54,9 @@ app.get("/", (req, res) => {
     });
   });
   
-  app.get("/vip-lounge", (req, res) => {
-    if (req.session.user) {
-      res.send(`Welcome to the party ${req.session.user.username}.`);
-    } else {
-      res.send("Sorry, no guests allowed.");
-    }
+  app.get("/vip-lounge", isSignedIn, (req, res) => {
+    res.send(`Welcome to the party ${req.session.user.username}.`);
   });
-  
 
 app.use("/auth", authController);
 
